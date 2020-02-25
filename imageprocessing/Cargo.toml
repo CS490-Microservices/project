@@ -1,0 +1,8 @@
+[package]
+name = "imageprocessing"
+version = "0.0.0"
+authors = ["Alex van de Sandt <alex@avandesa.dev>"]
+edition = "2018"
+publish = false
+
+[dependencies]
