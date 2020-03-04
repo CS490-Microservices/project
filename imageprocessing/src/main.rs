@@ -1,11 +1,19 @@
 use {
     anyhow::{anyhow, ensure, Context as ErrorContext, Result},
     aws_lambda_events::event::s3::{S3Bucket, S3Entity, S3Event, S3EventRecord, S3Object},
+    image::{imageops::FilterType, GenericImageView, ImageFormat},
     lambda_runtime::{error::HandlerError, lambda, Context},
-    log::{debug, error},
+    log::{debug, error, info},
     rusoto_core::Region,
-    rusoto_s3::{GetObjectOutput, GetObjectRequest, S3Client, S3},
+    rusoto_s3::{
+        GetObjectOutput, GetObjectRequest, PutObjectOutput, PutObjectRequest, S3Client,
+        StreamingBody, S3,
+    },
     serde::Serialize,
+    std::{
+        io::{Cursor, Read},
+        time::Instant,
+    },
 };
 
 #[derive(Serialize)]
@@ -46,6 +54,8 @@ fn handler(event: S3Event, context: Context) -> std::result::Result<CustomOutput
 
 fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     let _ = context;
+    let start = Instant::now();
+    println!("executing");
 
     // Extract the key (image name) and the source bucket from the event
     let (key, src_bucket) = extract_key_src(event)
@@ -54,16 +64,77 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     // Open a connection to S3
     let s3_client = S3Client::new(Region::default());
 
+    let start_request = Instant::now();
     // Download the object
     let object = download_object(&s3_client, key.clone(), src_bucket.clone())
         .with_context(|| anyhow!("Failed to download object"))?;
 
     debug!("Got object: {:#?}", object);
+    debug!("Took {} ms", start_request.elapsed().as_millis());
+
     let len = object.content_length;
+    let content_type = object.content_type;
+
+    // Download image and load it into memory
+    // TODO: improve this - couldn't get traits right on first try
+    let start_read = Instant::now();
+    let mut body = object.body.expect("already checked").into_blocking_read();
+    let mut buffer = Vec::new();
+    body.read_to_end(&mut buffer)?;
+    let buffer = Cursor::new(buffer);
+    debug!("Reading took {} ms", start_read.elapsed().as_millis());
+
+    // Decode the image
+    let start_decode = Instant::now();
+    let image_format = ImageFormat::from_path(&key).with_context(|| "Error parsing image type")?;
+    let image = image::load(buffer, image_format)
+        .with_context(|| "Failed to load image - is it corrupted?")?;
+
+    let dimensions = image.dimensions();
+    info!(
+        "Got image with dimensions: ({}, {})",
+        dimensions.0, dimensions.1
+    );
+    debug!("Decoding took {} ms", start_decode.elapsed().as_millis());
+
+    // Resize it
+    let start_resize = Instant::now();
+    let scaled = image.resize(400, 400, FilterType::Nearest);
+    let scaled_dimensions = scaled.dimensions();
+    info!(
+        "Resized image to dimensions: ({}, {})",
+        scaled_dimensions.0, scaled_dimensions.1
+    );
+    debug!("Resizing took {} ms", start_resize.elapsed().as_millis());
 
     // Determine the output bucket & key
     let dest_key = format!("resized-{}", &key);
     let dest_bucket = format!("{}-resized", &src_bucket);
+
+    // Re-encode the scaled image
+    let start_encode = Instant::now();
+    let mut out_buffer = Cursor::new(Vec::new());
+    scaled.write_to(&mut out_buffer, image_format)?;
+    let out_buffer = out_buffer.into_inner();
+    debug!("Encoding took {} ms", start_encode.elapsed().as_millis());
+
+    let start_upload = Instant::now();
+    upload_object(
+        &s3_client,
+        dest_key.clone(),
+        dest_bucket.clone(),
+        content_type,
+        out_buffer,
+    )
+    .with_context(|| anyhow!("Failed to upload image to destination bucket"))?;
+
+    info!(
+        "Successfullly uploaded image to {}/{}",
+        dest_bucket, dest_key
+    );
+    debug!("Upload took {} ms", start_upload.elapsed().as_millis());
+
+    debug!("Everything took {} ms", start.elapsed().as_millis());
 
     Ok(CustomOutput {
         key,
@@ -131,5 +202,33 @@ fn download_object(client: &S3Client, key: String, bucket: String) -> Result<Get
         "Received object is not a supported image type"
     );
 
+    // Sanity check on the body
+    ensure!(
+        object.body.is_some(),
+        "Received object does not have a body"
+    );
+
     Ok(object)
+}
+
+fn upload_object(
+    client: &S3Client,
+    key: String,
+    bucket: String,
+    content_type: Option<String>,
+    body: impl Into<StreamingBody>,
+) -> Result<PutObjectOutput> {
+    // Build the upload request
+    let put_request = PutObjectRequest {
+        body: Some(body.into()),
+        bucket,
+        key,
+        content_type,
+        ..Default::default()
+    };
+
+    // Upload the image
+    let response = client.put_object(put_request).sync()?;
+
+    Ok(response)
 }

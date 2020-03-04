@@ -26,6 +26,7 @@ $ aws lambda create-function --function-name rustTest \
 	--zip-file fileb://lambda.zip \
 	--runtime provided \
 	--role <ROLE_ARN> \
+    --memory-size 1024 \
 	--environment Variables={RUST_BACKTRACE=1}
 $ # Code update - run this before every re-deploy
 $ aws lambda update-function-code \

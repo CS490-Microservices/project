@@ -36,13 +36,14 @@ features = [
     "rustls", # avoid linking to OpenSSL
 ]
 
-# [dependencies.image]
-# # Image processing library
-# version = "0.23"
-# default-features = false
-# # We'll only support these formats for now, though we can add more if we really want
-# # Full list: https://github.com/image-rs/image/blob/master/Cargo.toml#L42
-# features = [
-    # "jpeg",
-    # "png",
-# ]
+[dependencies.image]
+# Image processing library
+version = "0.23"
+default-features = false
+# We'll only support these formats for now, though we can add more if we really want
+# Full list: https://github.com/image-rs/image/blob/master/Cargo.toml#L42
+features = [
+    "jpeg",
+    "jpeg_rayon",
+    "png",
+]
