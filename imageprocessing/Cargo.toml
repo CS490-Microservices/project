@@ -1,0 +1,49 @@
+[package]
+name = "imageprocessing"
+version = "0.0.0"
+authors = ["Alex van de Sandt <alex@avandesa.dev>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+# AWS/Lambda helpers
+lambda_runtime = "0.2"      # runtime environment for a lambda
+aws_lambda_events = "0.2"   # strongly-typed events
+
+# Serializing/Deserializing
+serde = { version = "1.0", features = ["derive"] }
+
+# Error handling & logging
+anyhow = "1.0"          # error handling
+log = "0.4"             # logging framework
+simple_logger = "1.6"   # logging output
+
+urlencoding = "1.0"     # url decoding
+
+[dependencies.rusoto_core]
+# AWS API wrapper
+version = "0.42"
+default_features = false
+features = [
+    "rustls", # avoid linking to OpenSSL
+]
+
+[dependencies.rusoto_s3]
+# S3 API wrapper
+version = "0.42"
+default_features = false
+features = [
+    "rustls", # avoid linking to OpenSSL
+]
+
+[dependencies.image]
+# Image processing library
+version = "0.23"
+default-features = false
+# We'll only support these formats for now, though we can add more if we really want
+# Full list: https://github.com/image-rs/image/blob/master/Cargo.toml#L42
+features = [
+    "jpeg",
+    "jpeg_rayon",
+    "png",
+]
