@@ -20,12 +20,21 @@ simple_logger = "1.6"   # logging output
 
 urlencoding = "1.0"     # url decoding
 
-# [dependencies.rusoto_s3]
-# version = "0.42"
-# default_features = false
-# features = [
-    # "rustls",
-# ]
+[dependencies.rusoto_core]
+# AWS API wrapper
+version = "0.42"
+default_features = false
+features = [
+    "rustls", # avoid linking to OpenSSL
+]
+
+[dependencies.rusoto_s3]
+# S3 API wrapper
+version = "0.42"
+default_features = false
+features = [
+    "rustls", # avoid linking to OpenSSL
+]
 
 # [dependencies.image]
 # # Image processing library
