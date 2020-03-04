@@ -34,6 +34,17 @@ $ aws lambda update-function-code \
 	--zip-file fileb://lambda.zip
 ```
 
+## Logging
+
+This service uses the [`log`] crate with a [`simple_logger`] frontend. The log level is determined
+by the runtime environment variables. To set the log level:
+
+```
+$ aws lambda update-function-configuration --function-name rustTest --environment Variables={RUST_LOG=INFO}
+```
+
+Available levels: "OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+
 ## Note about `musl`
 
 Instead of trying to get `glibc` and OpenSSL linking to work properly, we will avoid the issue entirely by building a statically-linked binary. To accomplish this, we instead build against the `musl` toolchain and use a rust-native implementation of TLS/SSL, [`rustls`] where necessary.

@@ -27,8 +27,7 @@ struct CustomOutput {
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Initialize the logger
-    simple_logger::init_with_level(log::Level::Debug)
-        .with_context(|| "Could not initialize logger")?;
+    simple_logger::init_by_env();
 
     // Run the lambda
     lambda!(handler);
@@ -55,7 +54,6 @@ fn handler(event: S3Event, context: Context) -> std::result::Result<CustomOutput
 fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     let _ = context;
     let start = Instant::now();
-    println!("executing");
 
     // Extract the key (image name) and the source bucket from the event
     let (key, src_bucket) = extract_key_src(event)
@@ -69,8 +67,7 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     let object = download_object(&s3_client, key.clone(), src_bucket.clone())
         .with_context(|| anyhow!("Failed to download object"))?;
 
-    debug!("Got object: {:#?}", object);
-    debug!("Took {} ms", start_request.elapsed().as_millis());
+    debug!("Request took {} ms", start_request.elapsed().as_millis());
 
     let len = object.content_length;
     let content_type = object.content_type;
@@ -99,7 +96,7 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
 
     // Resize it
     let start_resize = Instant::now();
-    let scaled = image.resize(400, 400, FilterType::Nearest);
+    let scaled = image.resize(400, 400, FilterType::Nearest); // TODO: better filter?
     let scaled_dimensions = scaled.dimensions();
     info!(
         "Resized image to dimensions: ({}, {})",
