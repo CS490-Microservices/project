@@ -6,3 +6,34 @@ edition = "2018"
 publish = false
 
 [dependencies]
+# AWS/Lambda helpers
+lambda_runtime = "0.2"      # runtime environment for a lambda
+aws_lambda_events = "0.2"   # strongly-typed events
+
+# Serializing/Deserializing
+serde = { version = "1.0", features = ["derive"] }
+
+# Error handling & logging
+anyhow = "1.0"          # error handling
+log = "0.4"             # logging framework
+simple_logger = "1.6"   # logging output
+
+urlencoding = "1.0"     # url decoding
+
+# [dependencies.rusoto_s3]
+# version = "0.42"
+# default_features = false
+# features = [
+    # "rustls",
+# ]
+
+# [dependencies.image]
+# # Image processing library
+# version = "0.23"
+# default-features = false
+# # We'll only support these formats for now, though we can add more if we really want
+# # Full list: https://github.com/image-rs/image/blob/master/Cargo.toml#L42
+# features = [
+    # "jpeg",
+    # "png",
+# ]
