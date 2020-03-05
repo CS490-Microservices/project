@@ -3,6 +3,10 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from PIL import Image
+import boto3
+import io
+
+S3_BUCKET_NAME = 'cs490-microservices'
 
 """
     ResNet classes as defined in the ImageNet ILSVRC 2015 Dataset
@@ -1066,10 +1070,27 @@ def eval_result(prediction):
     return label
 
 
+"""Return the image downloaded from S3, keeping in-memory
+
+   Keyword arguments:
+   key -- the S3 key (path) to the file
+"""
+
+
+def get_s3_file(key):
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(S3_BUCKET_NAME)
+    object = bucket.Object(key)
+
+    file_stream = io.BytesIO()
+    object.download_fileobj(file_stream)
+    return Image.open(file_stream)
+
+
 def main():
-    image = Image.open('test.jpg')
-    image = preprocess_image(image)
-    prediction = run_model(image)
+    image = get_s3_file('test.jpg')
+    imageTensor = preprocess_image(image)
+    prediction = run_model(imageTensor)
     label = eval_result(prediction)
     print(label)
 
