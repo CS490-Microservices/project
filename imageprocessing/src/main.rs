@@ -11,6 +11,7 @@ use {
     },
     serde::Serialize,
     std::{
+        convert::TryInto,
         io::{Cursor, Read},
         time::Instant,
     },
@@ -20,7 +21,8 @@ use {
 struct CustomOutput {
     key: String,
     src_bucket: String,
-    len: Option<i64>,
+    src_len: Option<i64>,
+    out_len: usize,
     dest_key: String,
     dest_bucket: String,
 }
@@ -69,14 +71,21 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
 
     debug!("Request took {} ms", start_request.elapsed().as_millis());
 
-    let len = object.content_length;
+    // The size of the image in bytes, lower-bounded by 1024 and upper-bounded by
+    // `usize::max_value()`. The given size is an `i64`, so we try to cast it to a `usize` to
+    // properly initialize the buffer.
+    let len = object
+        .content_length
+        .unwrap_or(1024)
+        .try_into()
+        .unwrap_or(usize::max_value());
     let content_type = object.content_type;
 
     // Download image and load it into memory
     // TODO: improve this - couldn't get traits right on first try
     let start_read = Instant::now();
     let mut body = object.body.expect("already checked").into_blocking_read();
-    let mut buffer = Vec::new();
+    let mut buffer = Vec::with_capacity(len);
     body.read_to_end(&mut buffer)?;
     let buffer = Cursor::new(buffer);
     debug!("Reading took {} ms", start_read.elapsed().as_millis());
@@ -113,6 +122,7 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     let mut out_buffer = Cursor::new(Vec::new());
     scaled.write_to(&mut out_buffer, image_format)?;
     let out_buffer = out_buffer.into_inner();
+    let out_len = out_buffer.len();
     debug!("Encoding took {} ms", start_encode.elapsed().as_millis());
 
     let start_upload = Instant::now();
@@ -136,7 +146,8 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     Ok(CustomOutput {
         key,
         src_bucket,
-        len,
+        src_len: object.content_length,
+        out_len: out_len,
         dest_key,
         dest_bucket,
     })
