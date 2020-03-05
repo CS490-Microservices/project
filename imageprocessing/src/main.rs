@@ -119,7 +119,9 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
 
     // Re-encode the scaled image
     let start_encode = Instant::now();
-    let mut out_buffer = Cursor::new(Vec::new());
+    let mut out_buffer = Cursor::new(Vec::with_capacity(
+        (scaled.height() * scaled.width()) as usize,
+    ));
     scaled.write_to(&mut out_buffer, image_format)?;
     let out_buffer = out_buffer.into_inner();
     let out_len = out_buffer.len();
