@@ -11,8 +11,9 @@ s3_connector = boto3.resource('s3')
 def lambda_handler(event, context):
     dbUser = "Lambda"
     dbpass = s3_connector.Object("authcredentials", "dbpass.txt").get()['Body'].read().decode('utf-8')
-    databaseConnection = pymysql.connect("database-1.ccb88a7leykg.us-east-1.rds.amazonaws.com", dbUser, dbpass, "authdb")
-    cursor = databaseConnection.cursor()
+    dbaddress = s3_connector.Object("config", "dbaddress.txt").get()['Body'].read().decode('utf-8')
+    dbname = s3_connector.Object("config", "dbname.txt").get()['Body'].read().decode('utf-8')
+    databaseConnection = pymysql.connect(dbaddress, dbUser, dbpass, dbname)    cursor = databaseConnection.cursor()
     cursor.execute("SELECT hash FROM authtable WHERE username=%s;", (event["username"],))
     hash = cursor.fetchall()[0][0]
     statusCode = 500
