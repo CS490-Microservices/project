@@ -27,7 +27,7 @@ $ aws lambda create-function --function-name rustTest \
 	--runtime provided \
 	--role <ROLE_ARN> \
     --memory-size 1024 \
-	--environment Variables={RUST_BACKTRACE=1}
+	--environment Variables={DEST_BUCKET=<DEST-BUCKET-NAME>}
 $ # Code update - run this before every re-deploy
 $ aws lambda update-function-code \
 	--function-name rustTest \
