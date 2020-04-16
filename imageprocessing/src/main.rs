@@ -105,8 +105,8 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     debug!("Resizing took {} ms", start_resize.elapsed().as_millis());
 
     // Determine the output bucket & key
-    let dest_key = format!("resized-{}", &key);
-    let dest_bucket = format!("{}-resized", &src_bucket);
+    let dest_bucket =
+        std::env::var("DEST_BUCKET").unwrap_or_else(|_| format!("{}-resized", &src_bucket));
 
     // Re-encode the scaled image
     let start_encode = Instant::now();
@@ -118,26 +118,23 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     let start_upload = Instant::now();
     upload_object(
         &s3_client,
-        dest_key.clone(),
+        key.clone(),
         dest_bucket.clone(),
         content_type,
         out_buffer,
     )
     .with_context(|| anyhow!("Failed to upload image to destination bucket"))?;
 
-    info!(
-        "Successfullly uploaded image to {}/{}",
-        dest_bucket, dest_key
-    );
+    info!("Successfullly uploaded image to {}/{}", dest_bucket, key);
     debug!("Upload took {} ms", start_upload.elapsed().as_millis());
 
     debug!("Everything took {} ms", start.elapsed().as_millis());
 
     Ok(CustomOutput {
-        key,
+        key: key.clone(),
         src_bucket,
         len,
-        dest_key,
+        dest_key: key,
         dest_bucket,
     })
 }
