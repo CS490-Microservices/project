@@ -6,8 +6,8 @@ use {
     log::{debug, error, info},
     rusoto_core::Region,
     rusoto_s3::{
-        GetObjectOutput, GetObjectRequest, PutObjectOutput, PutObjectRequest, S3Client,
-        StreamingBody, S3,
+        DeleteObjectOutput, DeleteObjectRequest, GetObjectOutput, GetObjectRequest,
+        PutObjectOutput, PutObjectRequest, S3Client, StreamingBody, S3,
     },
     serde::Serialize,
     std::{
@@ -128,6 +128,13 @@ fn execute(event: &S3Event, context: &Context) -> Result<CustomOutput> {
     info!("Successfullly uploaded image to {}/{}", dest_bucket, key);
     debug!("Upload took {} ms", start_upload.elapsed().as_millis());
 
+    // Delete the raw image from the intermediate bucket
+    let start_delete = Instant::now();
+    delete_object(&s3_client, key.clone(), src_bucket.clone())
+        .with_context(|| anyhow!("Failed to delete source image"))?;
+    info!("Successfully removed raw image from {}/{}", src_bucket, key);
+    debug!("Deletion took {} ms", start_delete.elapsed().as_millis());
+
     debug!("Everything took {} ms", start.elapsed().as_millis());
 
     Ok(CustomOutput {
@@ -223,6 +230,18 @@ fn upload_object(
 
     // Upload the image
     let response = client.put_object(put_request).sync()?;
+
+    Ok(response)
+}
+
+fn delete_object(client: &S3Client, key: String, bucket: String) -> Result<DeleteObjectOutput> {
+    let delete_request = DeleteObjectRequest {
+        bucket,
+        key,
+        ..Default::default()
+    };
+
+    let response = client.delete_object(delete_request).sync()?;
 
     Ok(response)
 }
