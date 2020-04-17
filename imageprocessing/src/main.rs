@@ -198,9 +198,11 @@ fn download_object(client: &S3Client, key: String, bucket: String) -> Result<Get
         .content_type
         .as_ref()
         .ok_or_else(|| anyhow!("Object does not have content-type specified"))?;
+    // `image/jpg` is not an IANA content-type, but we can support it anyway
     ensure!(
-        content_type == "image/jpeg" || content_type == "image/png",
-        "Received object is not a supported image type"
+        content_type == "image/jpeg" || content_type == "image/jpg" || content_type == "image/png",
+        "Received object is not a supported image type, got {}",
+        content_type,
     );
 
     // Sanity check on the body
