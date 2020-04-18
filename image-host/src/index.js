@@ -3,10 +3,16 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+import NavBar from "./components/NavBar";
+import { initializeIcons } from 'office-ui-fabric-react/lib/Icons';
 
+initializeIcons();
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <NavBar />
+    <div className="content">
+      <App />
+    </div>
   </React.StrictMode>,
   document.getElementById('root')
 );
