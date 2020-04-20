@@ -1,0 +1,73 @@
+.overlay {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 1rem;
+  border-radius: 15px;
+}
+
+.image-container {
+  cursor: pointer;
+  position: relative;
+  width: 400px;
+  height: 400px;
+  background-color: white;
+  margin: 10px;
+}
+
+.image {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+}
+
+.topnav {
+  background-color: black;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Style the links inside the navigation bar */
+.topnav #right {
+  float: right;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.topnav #left {
+  float: left;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  color: white;
+}
+
+/* Add a color to the active/current link */
+.topnav .active {
+  color: white !important;
+}
+
